@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Scan {
+  id          String     @id @default(cuid())
+  repoOwner   String
+  repoName    String
+  repoUrl     String
+  status      ScanStatus @default(PENDING)
+  
+  // Repo metadata
+  description String?
+  stars       Int?
+  forks       Int?
+  language    String?
+  
+  // Results
+  totalCommits      Int?
+  totalBotCommits   Int?
+  humanAuthors      Int?
+  botAuthors        String[]
+  dateRangeStart    DateTime?
+  dateRangeEnd      DateTime?
+  
+  // Final score & verdict
+  score             Int?
+  verdict           String?
+  
+  // Signal results stored as JSON
+  signals           Json?
+  
+  // Chart distributions stored as JSON
+  hourDistribution  Json?
+  weekdayDistribution Json?
+  
+  // Timestamps
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  completedAt DateTime?
+  
+  @@unique([repoOwner, repoName])
+  @@index([repoOwner, repoName])
+}
+
+enum ScanStatus {
+  PENDING
+  VALIDATING
+  FETCHING_COMMITS
+  FETCHING_FILE_DETAILS
+  ANALYZING
+  COMPLETED
+  FAILED
+}
