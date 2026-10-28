@@ -43,40 +43,48 @@ export class ScanService {
   /**
    * Start a new scan or return cached report if scanned < 24h ago
    */
-  public async startScan(repoUrl: string): Promise<{ scanId: string; status: ScanStatus; isCached: boolean }> {
+  public async startScan(
+    repoUrl: string,
+    force: boolean = false,
+  ): Promise<{ scanId: string; status: ScanStatus; isCached: boolean }> {
     const { owner, repo } = this.githubService.parseRepoUrl(repoUrl);
     const repoKey = `${owner.toLowerCase()}/${repo.toLowerCase()}`;
 
-    // 1. Check PostgreSQL cache if connected
-    if (this.prisma.isConnected) {
-      try {
-        const existing = await this.prisma.scan.findUnique({
-          where: { repoOwner_repoName: { repoOwner: owner, repoName: repo } },
-        });
+    // If force is false, check 24-hour caches
+    if (!force) {
+      // 1. Check PostgreSQL cache if connected
+      if (this.prisma.isConnected) {
+        try {
+          const existing = await this.prisma.scan.findUnique({
+            where: { repoOwner_repoName: { repoOwner: owner, repoName: repo } },
+          });
 
-        if (existing && existing.status === 'COMPLETED' && existing.completedAt) {
-          const ageHours = (Date.now() - existing.completedAt.getTime()) / (1000 * 3600);
+          if (existing && existing.status === 'COMPLETED' && existing.completedAt) {
+            const ageHours = (Date.now() - existing.completedAt.getTime()) / (1000 * 3600);
+            if (ageHours < 24) {
+              this.logger.log(`⚡ Returning PostgreSQL cached report for ${repoKey}`);
+              return { scanId: existing.id, status: 'COMPLETED', isCached: true };
+            }
+          }
+        } catch (err: any) {
+          this.logger.warn(`Prisma cache check failed: ${err.message}`);
+        }
+      }
+
+      // 2. Check in-memory store cache
+      const cachedScanId = this.repoIndex.get(repoKey);
+      if (cachedScanId) {
+        const record = this.memoryStore.get(cachedScanId);
+        if (record && record.status === 'COMPLETED' && record.completedAt) {
+          const ageHours = (Date.now() - record.completedAt.getTime()) / (1000 * 3600);
           if (ageHours < 24) {
-            this.logger.log(`⚡ Returning PostgreSQL cached report for ${repoKey}`);
-            return { scanId: existing.id, status: 'COMPLETED', isCached: true };
+            this.logger.log(`⚡ Returning in-memory cached report for ${repoKey}`);
+            return { scanId: record.id, status: 'COMPLETED', isCached: true };
           }
         }
-      } catch (err: any) {
-        this.logger.warn(`Prisma cache check failed: ${err.message}`);
       }
-    }
-
-    // 2. Check in-memory store cache
-    const cachedScanId = this.repoIndex.get(repoKey);
-    if (cachedScanId) {
-      const record = this.memoryStore.get(cachedScanId);
-      if (record && record.status === 'COMPLETED' && record.completedAt) {
-        const ageHours = (Date.now() - record.completedAt.getTime()) / (1000 * 3600);
-        if (ageHours < 24) {
-          this.logger.log(`⚡ Returning in-memory cached report for ${repoKey}`);
-          return { scanId: record.id, status: 'COMPLETED', isCached: true };
-        }
-      }
+    } else {
+      this.logger.log(`🔄 Force re-scan requested for ${repoKey}. Bypassing 24h cache.`);
     }
 
     // 3. Create fresh scan record

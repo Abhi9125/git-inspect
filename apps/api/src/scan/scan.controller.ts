@@ -12,6 +12,7 @@ import { ScanService } from './scan.service';
 
 class StartScanDto {
   repoUrl: string;
+  force?: boolean;
 }
 
 @Controller()
@@ -34,7 +35,7 @@ export class ScanController {
     if (!body || !body.repoUrl) {
       throw new BadRequestException('repoUrl is required.');
     }
-    return this.scanService.startScan(body.repoUrl);
+    return this.scanService.startScan(body.repoUrl, body.force);
   }
 
   @Get('scan/:id')

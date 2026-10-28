@@ -90,7 +90,7 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
     if (!owner || !repo) return;
     try {
       setIsScanning(true);
-      const res = await startScan(`https://github.com/${owner}/${repo}`);
+      const res = await startScan(`https://github.com/${owner}/${repo}`, true);
       router.push(`/scan/${res.scanId}`);
     } catch (err: any) {
       setIsScanning(false);

@@ -8,11 +8,11 @@ export interface StartScanResponse {
   isCached: boolean;
 }
 
-export async function startScan(repoUrl: string): Promise<StartScanResponse> {
+export async function startScan(repoUrl: string, force: boolean = false): Promise<StartScanResponse> {
   const res = await fetch(`${API_BASE}/scan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ repoUrl }),
+    body: JSON.stringify({ repoUrl, force }),
   });
 
   if (!res.ok) {
