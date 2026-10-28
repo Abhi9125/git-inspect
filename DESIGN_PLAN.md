@@ -772,6 +772,32 @@ Git commit timestamps (`GIT_AUTHOR_DATE`, `GIT_COMMITTER_DATE`) are client-side 
 
 ---
 
+## 🚀 Phase 8: Multi-Tenant GitHub OAuth & Rate-Limit Elimination (Steps 31–34)
+
+### The Vision: True Open-Source Multi-Tenant Scale
+Instead of sharing a single server IP quota (which is capped at 60 unauthenticated requests/hour), GitForensics integrates **"Sign in with GitHub" (OAuth)**. Every visitor who signs in brings their own personal **5,000 requests/hour** quota directly from GitHub.
+- **1,000 signed-in users = 5,000,000 requests/hour.**
+- Zero server IP rate limits.
+- Zero copy-pasting of tokens required by visitors.
+- Strictly requests `read:user` scope (zero access to private code, guaranteeing 100% user trust).
+
+### Technical Flow:
+1. **Frontend Authentication (`apps/web`):** Built-in Next.js 15 OAuth handlers (`/api/auth/github`, `/api/auth/callback/github`, `/api/auth/me`, `/api/auth/logout`) with encrypted HTTP-only session cookies.
+2. **Auth Context & Navbar Pill (`apps/web`):** `AuthContext` provides user state. Navbar renders a sleek `"Sign in with GitHub"` button when logged out, and user avatar + `"5,000 Quota Active"` pill when logged in.
+3. **Token Forwarding (`apps/web/lib/api.ts`):** Client passes user's GitHub token in `Authorization: Bearer <token>` on `POST /api/scan`.
+4. **Backend Prioritization (`apps/api`):** NestJS backend extracts `userToken` and uses it for all GitHub API requests during that scan.
+
+### Implementation Roadmap (Steps 31–34):
+
+| Step | Task | Target Files |
+|------|------|--------------|
+| 31 | Implement Next.js 15 GitHub OAuth route handlers (`github`, `callback`, `me`, `logout`) | `apps/web/app/api/auth/` |
+| 32 | Build AuthContext, Session Provider, and Navbar Sign-In UI | `apps/web/context/AuthContext.tsx`, `Navbar.tsx` |
+| 33 | Forward user OAuth token from frontend and prioritize in backend GitHubService | `apps/web/lib/api.ts`, `apps/api/src/scan/`, `github.service.ts` |
+| 34 | Verify full multi-tenant flow, test fallback on rate-limit screen, and commit | Full stack verification |
+
+---
+
 ## ✅ V1 Feature Checklist
 
 | Feature | Included |
@@ -783,14 +809,14 @@ Git commit timestamps (`GIT_AUTHOR_DATE`, `GIT_COMMITTER_DATE`) are client-side 
 | Interactive charts (hours, weekdays) | ✅ |
 | Signal cards with pass/fail/warning | ✅ |
 | Shareable report URL | ✅ |
-| Cached reports (24h) | ✅ |
-| Rate limiting | ✅ |
+| Cached reports (48h) | ✅ |
+| Rate limiting resilience | ✅ |
 | Mobile responsive | ✅ |
 | Recent scans on landing page | ✅ |
 | GitHub badge for README | ✅ |
-| Dark mode | ✅ (Shadcn supports it) |
+| Dark mode | ✅ (Vibrant Design System) |
 | Interactive Figma-style Demo Switcher | ✅ |
-| GitHub OAuth login | ❌ (V2) |
+| GitHub OAuth login ("Sign in with GitHub" - 5k req/hr/user) | ✅ (Phase 8) |
 | Private repo scanning | ❌ (V2) |
 | Profile-level analysis | ❌ (V2) |
 | Compare two repos | ❌ (V2) |
