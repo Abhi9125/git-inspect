@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Sparkles, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import { DEMO_PRESETS } from '@git-forensics/shared';
+import { POPULAR_REPOS } from '@git-forensics/shared';
 import { startScan } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -76,12 +76,12 @@ export default function SearchBar() {
         </div>
       )}
 
-      {/* Preset Chips */}
+      {/* Popular Repository Chips */}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[12px] text-dark-muted">
         <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider text-dark-muted/80 mr-1">
-          <Sparkles className="size-3 text-vibrant" /> Quick Try:
+          <Sparkles className="size-3 text-vibrant" /> Popular Repositories:
         </span>
-        {DEMO_PRESETS.map((preset) => (
+        {POPULAR_REPOS.map((preset) => (
           <button
             key={preset.label}
             type="button"

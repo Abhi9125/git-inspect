@@ -87,7 +87,7 @@ GitForensics Monorepo (Turborepo)
 ├── apps/
 │   ├── web/                     # Next.js 15 (App Router, React 19, Tailwind CSS)
 │   │   ├── app/                 # / (Search & Bento), /scan/[id] (Polling), /report/[slug]
-│   │   ├── components/          # ScoreGauge, HourChart, WeekdayChart, SignalCard, DemoSwitcher
+│   │   ├── components/          # ScoreGauge, HourChart, WeekdayChart, SignalCard, Navbar
 │   │   └── lib/api.ts           # Type-safe API client for backend communication
 │   └── api/                     # NestJS 10 (Modular microservice architecture)
 │       ├── src/github/          # GitHub API integration & intelligent commit sampler
@@ -105,7 +105,7 @@ GitForensics Monorepo (Turborepo)
 - **Non-blocking Event Loop Pipeline:** `POST /api/scan` initializes a job record and returns `{ scanId, status: "PENDING" }` in $<10\text{ms}$. The scanning pipeline runs asynchronously in the backend event loop while the frontend polls progress at 1.5-second intervals.
 - **Neon Cloud PostgreSQL & In-Memory Hybrid Storage:** Completed scan reports are stored in PostgreSQL with 24-hour cache invalidation, ensuring instant $<5\text{ms}$ retrieval for frequently inspected repositories.
 - **Figma-Grade Dark Aesthetic:** Designed with Vibrant Design principles—Electric Blue (`#3074FE`), dark slate canvas (`#0A0D14`), hairline borders (`#1F2430`), and SVG-based gauge and diurnal distribution charts.
-- **Built-in Interactive Demo:** Includes a side-by-side interactive demo switcher at `/report/demo` allowing portfolio reviewers and recruiters to instantly compare an Authentic human project (Score: 92/100) vs. a Bot Streak project (Score: 12/100).
+- **Multi-Tenant GitHub OAuth & 5k Rate-Limit Elimination:** Visitors can authenticate in 1-click via GitHub OAuth (`read:user` minimal scope) to unlock their personal 5,000 req/hr developer quota with isolated personal search history and automatic scan resuming.
 
 ---
 

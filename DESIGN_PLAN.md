@@ -801,6 +801,22 @@ Instead of sharing a single server IP quota (which is capped at 60 unauthenticat
 
 ---
 
+## 🧹 Phase 9: Production Clean-up (Purge Mock Data & Demo Artifacts)
+
+### Problem & Objective:
+Now that the platform is fully connected to the live GitHub API (with 5,000 req/hr OAuth), PostgreSQL caching, and an 8-signal forensic suite, temporary dummy datasets and demo artifacts from earlier UI prototyping (`/report/demo`, `DemoSwitcher.tsx`, `mockData.ts`, and fallback mock entries in `RecentScans.tsx`) are obsolete. Phase 9 purges all dummy artifacts and transitions the system to 100% live data.
+
+### Implementation Tasks (Steps 36–39):
+
+| Step | Task | Target Files | Status |
+|------|------|--------------|--------|
+| 36 | Delete `mockData.ts` and `DemoSwitcher.tsx` | `apps/web/lib/mockData.ts`, `apps/web/components/DemoSwitcher.tsx` | ✅ Done |
+| 37 | Purge demo routes and mock fallback from report page | `apps/web/app/report/[slug]/page.tsx` | ✅ Done |
+| 38 | Purge mock cards from RecentScans and add empty state; remove Navbar demo link | `apps/web/components/RecentScans.tsx`, `Navbar.tsx` | ✅ Done |
+| 39 | Replace fake bot preset with real popular repos; clean scan progress fallback | `packages/shared/src/constants.ts`, `SearchBar.tsx`, `apps/web/app/scan/[id]/page.tsx` | ✅ Done |
+
+---
+
 ## ✅ V1 Feature Checklist
 
 | Feature | Included |
@@ -815,10 +831,10 @@ Instead of sharing a single server IP quota (which is capped at 60 unauthenticat
 | Cached reports (48h) | ✅ |
 | Rate limiting resilience | ✅ |
 | Mobile responsive | ✅ |
-| Recent scans on landing page | ✅ |
+| Recent scans on landing page (100% live database audits) | ✅ |
 | GitHub badge for README | ✅ |
 | Dark mode | ✅ (Vibrant Design System) |
-| Interactive Figma-style Demo Switcher | ✅ |
+| 100% Live Engine (Purged all mock & dummy data) | ✅ (Phase 9) |
 | GitHub OAuth login ("Sign in with GitHub" - 5k req/hr/user) | ✅ (Phase 8) |
 | Private repo scanning | ❌ (V2) |
 | Profile-level analysis | ❌ (V2) |

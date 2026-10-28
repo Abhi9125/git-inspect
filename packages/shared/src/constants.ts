@@ -22,14 +22,14 @@ export const SCORE_THRESHOLDS = {
   MAX_SCORE: 100
 };
 
-export const DEMO_PRESETS = [
+export const POPULAR_REPOS = [
   {
     owner: 'facebook',
     repo: 'react',
     label: 'facebook/react',
     tag: 'Authentic Human',
     stars: '230k',
-    expectedScore: 94
+    expectedScore: 94,
   },
   {
     owner: 'torvalds',
@@ -37,14 +37,8 @@ export const DEMO_PRESETS = [
     label: 'torvalds/linux',
     tag: 'High Scale',
     stars: '185k',
-    expectedScore: 98
+    expectedScore: 98,
   },
-  {
-    owner: 'activity-bot',
-    repo: 'spoofed-streak',
-    label: 'activity-bot/spoofed-streak',
-    tag: 'Bot Farm Demo',
-    stars: '12',
-    expectedScore: 12
-  }
 ];
+
+export const DEMO_PRESETS = POPULAR_REPOS;

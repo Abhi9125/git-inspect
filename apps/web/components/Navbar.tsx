@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldCheck, Github, LogOut, Sparkles } from 'lucide-react';
+import { ShieldCheck, Github, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
@@ -23,16 +23,6 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/report/demo"
-            className="text-[12px] font-medium text-dark-muted hover:text-white transition-colors hidden sm:flex items-center gap-1"
-          >
-            <Sparkles className="size-3 text-vibrant" />
-            <span>Interactive Demo</span>
-          </Link>
-
-          <div className="h-3 w-[1px] bg-dark-border hidden sm:block" />
-
           {isLoading ? (
             <div className="h-7 w-20 bg-dark-card animate-pulse rounded-lg" />
           ) : isAuthenticated && user ? (

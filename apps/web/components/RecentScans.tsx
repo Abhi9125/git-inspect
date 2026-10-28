@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Star, ArrowUpRight, ShieldCheck, History } from 'lucide-react';
-import { RECENT_SCANS } from '../lib/mockData';
+import { Star, ShieldCheck, History } from 'lucide-react';
 import { getRecentScans, getUserScans } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,7 +14,6 @@ interface ScanItem {
   stars: number | string;
   timeAgo: string;
   language: string;
-  isLive?: boolean;
 }
 
 export default function RecentScans() {
@@ -39,7 +37,6 @@ export default function RecentScans() {
             stars: s.stars,
             timeAgo: s.timeAgo || 'Recently',
             language: s.language || 'Code',
-            isLive: true,
           }));
           setScans(formatted);
           setHasLoaded(true);
@@ -51,7 +48,7 @@ export default function RecentScans() {
           }
         });
     } else if (!isLoading) {
-      // Guest: Fetch public recent / sample scans
+      // Guest: Fetch public recent database scans
       getRecentScans()
         .then((liveScans) => {
           if (!isMounted) return;
@@ -64,23 +61,16 @@ export default function RecentScans() {
               stars: s.stars,
               timeAgo: s.timeAgo || 'Recently',
               language: s.language || 'Code',
-              isLive: true,
             }));
-
-            const existingKeys = new Set(formattedLive.map((item) => `${item.owner}/${item.repo}`));
-            const remainingDemo = RECENT_SCANS.filter(
-              (item) => !existingKeys.has(`${item.owner}/${item.repo}`)
-            );
-
-            setScans([...formattedLive, ...remainingDemo].slice(0, 6));
+            setScans(formattedLive.slice(0, 6));
           } else {
-            setScans(RECENT_SCANS.slice(0, 6));
+            setScans([]);
           }
           setHasLoaded(true);
         })
         .catch(() => {
           if (isMounted) {
-            setScans(RECENT_SCANS.slice(0, 6));
+            setScans([]);
             setHasLoaded(true);
           }
         });
@@ -121,23 +111,21 @@ export default function RecentScans() {
           <p className="text-[12px] text-dark-muted mt-0.5">
             {isAuthenticated
               ? `Audits conducted using your personal 5,000 req/hr GitHub developer quota`
-              : 'Live sample repositories analyzed by our detection engine'}
+              : 'Live repositories analyzed and verified by our detection engine'}
           </p>
         </div>
-        <Link
-          href="/report/demo"
-          className="text-[12px] font-medium text-vibrant hover:text-vibrant-hover flex items-center gap-1"
-        >
-          Open Interactive Demo <ArrowUpRight className="size-3.5" />
-        </Link>
       </div>
 
-      {isAuthenticated && hasLoaded && scans.length === 0 ? (
+      {hasLoaded && scans.length === 0 ? (
         <div className="rounded-xl border border-dashed border-dark-border bg-dark-card/40 p-8 text-center backdrop-blur-sm">
           <ShieldCheck className="mx-auto size-8 text-dark-muted mb-2.5 opacity-60" />
-          <h3 className="text-sm font-semibold text-white">No Personal Audits Yet</h3>
+          <h3 className="text-sm font-semibold text-white">
+            {isAuthenticated ? 'No Personal Audits Yet' : 'No Public Audits Yet'}
+          </h3>
           <p className="text-[12px] text-dark-muted mt-1 max-w-sm mx-auto">
-            You are signed in with your personal GitHub quota. Paste any public repository URL above to generate your first forensic report!
+            {isAuthenticated
+              ? 'You are signed in with your personal GitHub quota. Paste any public repository URL above to generate your first forensic report!'
+              : 'Be the first to inspect a GitHub repository. Paste any public repository URL above to run the first forensic audit!'}
           </p>
         </div>
       ) : (
@@ -145,9 +133,7 @@ export default function RecentScans() {
           {scans.map((scan) => {
             const isAuthentic = scan.verdict === 'AUTHENTIC';
             const isMixed = scan.verdict === 'MIXED';
-            const href = scan.isLive
-              ? `/report/${encodeURIComponent(scan.owner)}--${encodeURIComponent(scan.repo)}`
-              : '/report/demo';
+            const href = `/report/${encodeURIComponent(scan.owner)}--${encodeURIComponent(scan.repo)}`;
 
             return (
               <Link

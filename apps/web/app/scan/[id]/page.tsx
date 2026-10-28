@@ -61,11 +61,13 @@ export default function ScanProgressPage({ params }: { params: Promise<{ id: str
             setError(data.error || 'Repository analysis failed.');
           }
         } else {
-          // Graceful fallback for mock slugs (e.g. facebook--react)
+          // Direct fallback for owner--repo slugs
           clearInterval(interval);
-          setTimeout(() => {
-            router.push('/report/demo');
-          }, 1500);
+          if (scanId.includes('--') || scanId.includes('/')) {
+            router.push(`/report/${encodeURIComponent(scanId)}`);
+          } else {
+            setError(`Invalid scan identifier "${scanId}".`);
+          }
         }
       } catch (err: any) {
         setError(err.message || 'Failed connecting to forensic scanning engine.');
