@@ -13,6 +13,7 @@ export interface GitHubRepoMeta {
   defaultBranch: string;
   createdAt: string;
   updatedAt: string;
+  pushedAt?: string;
 }
 
 export interface RawCommit {
@@ -110,6 +111,7 @@ export class GitHubService {
       defaultBranch: data.default_branch,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
+      pushedAt: data.pushed_at,
     };
   }
 

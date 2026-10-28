@@ -170,7 +170,11 @@ export class ScanService {
       record.status = 'ANALYZING';
       record.progressPercent = 85;
       record.currentStepMessage = 'Running 7-signal forensic algorithms...';
-      const analysis = this.forensicsService.analyze(enrichedCommits);
+      const analysis = this.forensicsService.analyze(
+        enrichedCommits,
+        meta.createdAt,
+        meta.pushedAt,
+      );
       record.completedSteps.push('entropy', 'timing', 'dates');
 
       // Step 6: Score Calculation

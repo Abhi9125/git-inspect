@@ -29,12 +29,16 @@ export interface ForensicsAnalysisResult {
 
 @Injectable()
 export class ForensicsService {
-  public analyze(commits: RawCommit[]): ForensicsAnalysisResult {
+  public analyze(
+    commits: RawCommit[],
+    repoCreatedAt?: string,
+    repoPushedAt?: string,
+  ): ForensicsAnalysisResult {
     // 1. Run all 7 signals
     const s1 = analyzeFileDiversity(commits);
     const s2 = analyzeMessageEntropy(commits);
     const s3 = analyzeTimeRegularity(commits);
-    const s4 = analyzeDateMismatch(commits);
+    const s4 = analyzeDateMismatch(commits, repoCreatedAt, repoPushedAt);
     const { signal: s5, hourDistribution } = analyzeWorkingHours(commits);
     const { signal: s6, linesChanged } = analyzeCodeDiff(commits);
     const { signal: s7, weekdayDistribution } = analyzeWeekendPattern(commits);
