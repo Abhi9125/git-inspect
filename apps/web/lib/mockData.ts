@@ -127,6 +127,19 @@ export const MOCK_AUTHENTIC_REPORT: ForensicReport = {
         weekendExclusivity: false
       },
       explanation: 'Activity reflects standard active developer schedule with occasional weekend contributions.'
+    },
+    {
+      id: 'github_push',
+      name: 'Server-Side Push Event & Log Integrity',
+      status: 'PASS',
+      scorePenalty: 0,
+      summary: 'Verified incremental delivery (42 distinct server push events logged)',
+      details: {
+        pushEventsCount: 42,
+        avgCommitsPerPush: 6.8,
+        verifiedIncremental: true
+      },
+      explanation: 'GitHub datacenter server logs confirm incremental push activity matching the commit development timeline.'
     }
   ],
   hourDistribution: {
@@ -274,6 +287,20 @@ export const MOCK_BOT_REPORT: ForensicReport = {
         weekendExclusivity: false
       },
       explanation: 'Unbroken daily streak spanning 365 days, a common pattern in automated activity generators.'
+    },
+    {
+      id: 'github_push',
+      name: 'Server-Side Push Event & Log Integrity',
+      status: 'ALERT',
+      scorePenalty: 15,
+      summary: 'Single batch ingestion: 365 commits uploaded in 1 push event',
+      details: {
+        pushEventsCount: 1,
+        recentCommitsCount: 365,
+        timelineSpanDays: 365,
+        singleBatchIngestion: true
+      },
+      explanation: 'Server push history reveals all 365 commits were uploaded in a single server push event, confirming automated backdated streak injection.'
     }
   ],
   hourDistribution: {

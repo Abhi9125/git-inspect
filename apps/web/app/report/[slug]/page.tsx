@@ -130,7 +130,7 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
           verdictDescription={demoReport.verdictDescription}
         />
 
-        {/* 7 Forensic Signals Section */}
+        {/* Forensic Signals Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -138,11 +138,11 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
                 Forensic Signal Analysis
               </h3>
               <p className="text-[12px] text-dark-muted">
-                Deep inspection across 7 behavioral dimensions
+                Deep inspection across {demoReport.signals.length} behavioral & server-log dimensions
               </p>
             </div>
             <span className="text-[11px] font-mono text-dark-muted">
-              {demoReport.signals.filter((s) => s.status === 'PASS').length}/7 Signals Cleared
+              {demoReport.signals.filter((s) => s.status === 'PASS').length}/{demoReport.signals.length} Signals Cleared
             </span>
           </div>
 
@@ -329,7 +329,7 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
         verdictDescription={report.verdictDescription}
       />
 
-      {/* 7 Forensic Signals Section */}
+      {/* Forensic Signals Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -337,11 +337,11 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
               Forensic Signal Analysis
             </h3>
             <p className="text-[12px] text-dark-muted">
-              Deep inspection across 7 behavioral dimensions
+              Deep inspection across {report.signals.length} behavioral & server-log dimensions
             </p>
           </div>
           <span className="text-[11px] font-mono text-dark-muted">
-            {report.signals.filter((s) => s.status === 'PASS').length}/7 Signals Cleared
+            {report.signals.filter((s) => s.status === 'PASS').length}/{report.signals.length} Signals Cleared
           </span>
         </div>
 

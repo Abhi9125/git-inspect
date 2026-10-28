@@ -32,6 +32,8 @@ export function analyzeCodeDiff(commits: RawCommit[]): CodeDiffAnalysis {
   const totalCommits = commits.length;
   const avgLinesPerCommit = sampledCount > 0 ? Math.round(totalLines / sampledCount) : 0;
   const trivialRatio = sampledCount > 0 ? trivialCount / sampledCount : 0;
+  const deletionRatio = totalLines > 0 ? deletions / totalLines : 0;
+  const deletionPercent = Math.round(deletionRatio * 100);
 
   // Red Flag: 30+ commits resulting in <= 10 lines, or >90% commits are 1-line appends
   if (totalCommits >= 30 && (totalLines <= 10 || (sampledCount >= 10 && trivialRatio > 0.9))) {
@@ -56,7 +58,7 @@ export function analyzeCodeDiff(commits: RawCommit[]): CodeDiffAnalysis {
     };
   }
 
-  // Warning: Unusually low code delta
+  // Warning 1: Unusually low code delta
   if (totalCommits >= 30 && avgLinesPerCommit < 3) {
     return {
       signal: {
@@ -79,18 +81,42 @@ export function analyzeCodeDiff(commits: RawCommit[]): CodeDiffAnalysis {
     };
   }
 
-  // Pass: Substantive development
+  // Warning 2: Code Churn & Refactoring Realism Anomaly (Purely additive code)
+  if (totalCommits >= 25 && additions >= 1500 && deletionRatio < 0.03) {
+    return {
+      signal: {
+        id: 'code_diff',
+        name: 'Code Diff Substance & Line Velocity',
+        status: 'WARNING',
+        scorePenalty: 10,
+        summary: `Abnormal purely additive code: ${100 - deletionPercent}% additions with near-zero refactoring churn (${deletionPercent}% deletions)`,
+        details: {
+          sampledAdditions: additions,
+          sampledDeletions: deletions,
+          totalLinesSampled: totalLines,
+          deletionRatio: Number(deletionRatio.toFixed(3)),
+          pureAdditiveCodeSuspected: true,
+        },
+        explanation:
+          'Authentic software engineering involves natural code churn, dead code removal, and iterative refactoring (typically 15%–40% deletions). A prolonged pattern of zero deletions suggests automated templated additions.',
+      },
+      linesChanged: { additions, deletions, total: totalLines },
+    };
+  }
+
+  // Pass: Substantive development with organic churn
   return {
     signal: {
       id: 'code_diff',
       name: 'Code Diff Substance & Line Velocity',
       status: 'PASS',
       scorePenalty: 0,
-      summary: `${totalLines.toLocaleString()} lines modified across sampled history (${avgLinesPerCommit} lines/commit)`,
+      summary: `${totalLines.toLocaleString()} lines modified across sampled history (${avgLinesPerCommit} lines/commit, ${deletionPercent}% deletions)`,
       details: {
         sampledAdditions: additions,
         sampledDeletions: deletions,
         totalLinesSampled: totalLines,
+        deletionPercent,
         trivialCommitPercent: Math.round(trivialRatio * 100),
         averageLinesPerCommit: avgLinesPerCommit,
       },

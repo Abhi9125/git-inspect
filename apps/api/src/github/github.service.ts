@@ -34,6 +34,15 @@ export interface RawCommit {
   files?: string[];
 }
 
+export interface GitHubPushEvent {
+  id: string;
+  type: string;
+  createdAt: string; // ISO timestamp written by GitHub servers
+  distinctSize: number;
+  head: string;
+  commitsCount: number;
+}
+
 @Injectable()
 export class GitHubService {
   private readonly token?: string;
@@ -212,5 +221,41 @@ export class GitHubService {
     }
 
     return commits;
+  }
+
+  /**
+   * Fetch public repository events (up to 100 events, 90-day window)
+   */
+  public async getRepoEvents(owner: string, repo: string): Promise<GitHubPushEvent[]> {
+    const url = `https://api.github.com/repos/${owner}/${repo}/events?per_page=100`;
+    try {
+      const res = await fetch(url, { headers: this.getHeaders() });
+      if (!res.ok) {
+        return [];
+      }
+
+      const events = await res.json();
+      if (!Array.isArray(events)) {
+        return [];
+      }
+
+      const pushEvents: GitHubPushEvent[] = [];
+      for (const ev of events) {
+        if (ev.type === 'PushEvent' && ev.payload) {
+          pushEvents.push({
+            id: String(ev.id),
+            type: 'PushEvent',
+            createdAt: ev.created_at,
+            distinctSize: ev.payload.distinct_size || ev.payload.size || 0,
+            head: ev.payload.head || '',
+            commitsCount: Array.isArray(ev.payload.commits) ? ev.payload.commits.length : 1,
+          });
+        }
+      }
+
+      return pushEvents;
+    } catch {
+      return [];
+    }
   }
 }

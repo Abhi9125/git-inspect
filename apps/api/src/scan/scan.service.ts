@@ -174,16 +174,18 @@ export class ScanService {
       );
       record.completedSteps.push('sample_files');
 
-      // Step 5: Executing 7 Forensic Signal Analyzers
+      // Step 5: Executing 8 Forensic Signal Analyzers & Server-Side Event Logs
       record.status = 'ANALYZING';
       record.progressPercent = 85;
-      record.currentStepMessage = 'Running 7-signal forensic algorithms...';
+      record.currentStepMessage = 'Running 8-signal forensic algorithms & server log audit...';
+      const repoEvents = await this.githubService.getRepoEvents(owner, repo);
       const analysis = this.forensicsService.analyze(
         enrichedCommits,
         meta.createdAt,
         meta.pushedAt,
+        repoEvents,
       );
-      record.completedSteps.push('entropy', 'timing', 'dates');
+      record.completedSteps.push('entropy', 'timing', 'dates', 'events');
 
       // Step 6: Score Calculation
       const scoreResult = this.scorerService.calculateScore(analysis.signals);

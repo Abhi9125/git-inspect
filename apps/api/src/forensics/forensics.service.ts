@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SignalResult } from '@git-forensics/shared';
-import { RawCommit } from '../github/github.service';
+import { RawCommit, GitHubPushEvent } from '../github/github.service';
 import { analyzeFileDiversity } from './signals/fileDiversity';
 import { analyzeMessageEntropy } from './signals/messageEntropy';
 import { analyzeTimeRegularity } from './signals/timeRegularity';
@@ -8,6 +8,7 @@ import { analyzeDateMismatch } from './signals/dateMismatch';
 import { analyzeWorkingHours } from './signals/workingHours';
 import { analyzeCodeDiff } from './signals/codeDiff';
 import { analyzeWeekendPattern } from './signals/weekendPattern';
+import { analyzeServerEvents } from './signals/serverEvents';
 
 export interface ForensicsAnalysisResult {
   signals: SignalResult[];
@@ -33,8 +34,9 @@ export class ForensicsService {
     commits: RawCommit[],
     repoCreatedAt?: string,
     repoPushedAt?: string,
+    events: GitHubPushEvent[] = [],
   ): ForensicsAnalysisResult {
-    // 1. Run all 7 signals
+    // 1. Run all 8 signals
     const s1 = analyzeFileDiversity(commits);
     const s2 = analyzeMessageEntropy(commits);
     const s3 = analyzeTimeRegularity(commits);
@@ -42,8 +44,9 @@ export class ForensicsService {
     const { signal: s5, hourDistribution } = analyzeWorkingHours(commits);
     const { signal: s6, linesChanged } = analyzeCodeDiff(commits);
     const { signal: s7, weekdayDistribution } = analyzeWeekendPattern(commits);
+    const s8 = analyzeServerEvents(commits, events, repoCreatedAt);
 
-    const signals: SignalResult[] = [s1, s2, s3, s4, s5, s6, s7];
+    const signals: SignalResult[] = [s1, s2, s3, s4, s5, s6, s7, s8];
 
     // 2. Compute files touched
     const uniqueFiles = new Set<string>();

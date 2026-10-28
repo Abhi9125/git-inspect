@@ -14,6 +14,7 @@ const SCAN_STEPS = [
   { id: 'entropy', label: 'Analyzing commit message entropy' },
   { id: 'timing', label: 'Detecting mechanical clock & timing intervals' },
   { id: 'dates', label: 'Verifying author vs committer certificate dates' },
+  { id: 'events', label: 'Auditing GitHub datacenter PushEvent logs' },
   { id: 'score', label: 'Computing authenticity score & forensic verdict' },
 ];
 
