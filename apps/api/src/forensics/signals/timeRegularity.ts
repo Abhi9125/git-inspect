@@ -14,7 +14,34 @@ export function analyzeTimeRegularity(commits: RawCommit[]): SignalResult {
     };
   }
 
-  // Group commits by day
+  // 1. Analyze Zero-Second & Round-Minute Quantization (AI Clock Simulation Heuristic)
+  let validDateCount = 0;
+  let zeroSecondsCount = 0;
+  let roundMinutesCount = 0;
+
+  for (const c of commits) {
+    const d = new Date(c.authorDate);
+    if (isNaN(d.getTime())) continue;
+    validDateCount++;
+    if (d.getSeconds() === 0) zeroSecondsCount++;
+    if (d.getMinutes() % 5 === 0) roundMinutesCount++;
+  }
+
+  const zeroSecondsRatio = validDateCount > 0 ? zeroSecondsCount / validDateCount : 0;
+  const roundMinutesRatio = validDateCount > 0 ? roundMinutesCount / validDateCount : 0;
+  const zeroSecondsPercent = Math.round(zeroSecondsRatio * 100);
+  const roundMinutesPercent = Math.round(roundMinutesRatio * 100);
+
+  const isQuantizedAlert =
+    validDateCount >= 15 &&
+    (zeroSecondsRatio >= 0.40 || (roundMinutesRatio >= 0.70 && zeroSecondsRatio >= 0.25));
+
+  const isQuantizedWarning =
+    validDateCount >= 15 &&
+    !isQuantizedAlert &&
+    (zeroSecondsRatio >= 0.20 || roundMinutesRatio >= 0.50);
+
+  // 2. Group commits by day for same-day interval variance (Mechanical loop check)
   const commitsByDay = new Map<string, number[]>();
 
   for (const c of commits) {
@@ -28,12 +55,10 @@ export function analyzeTimeRegularity(commits: RawCommit[]): SignalResult {
     commitsByDay.get(dayKey)!.push(timestamp);
   }
 
-  // Calculate gaps between consecutive commits on the same day
   const gapsInSeconds: number[] = [];
 
   for (const [, times] of commitsByDay.entries()) {
     if (times.length < 2) continue;
-    // Sort chronologically
     times.sort((a, b) => a - b);
 
     for (let i = 0; i < times.length - 1; i++) {
@@ -44,34 +69,47 @@ export function analyzeTimeRegularity(commits: RawCommit[]): SignalResult {
     }
   }
 
-  // If fewer than 5 same-day pairs, not enough data for mechanical clock check
-  if (gapsInSeconds.length < 5) {
+  let stdDev = 0;
+  let mean = 0;
+  let isIntervalAlert = false;
+  let isIntervalWarning = false;
+
+  if (gapsInSeconds.length >= 8) {
+    const sum = gapsInSeconds.reduce((acc, val) => acc + val, 0);
+    mean = sum / gapsInSeconds.length;
+    const variance =
+      gapsInSeconds.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) /
+      gapsInSeconds.length;
+    stdDev = Math.sqrt(variance);
+
+    if (stdDev < 5) isIntervalAlert = true;
+    else if (stdDev < 15) isIntervalWarning = true;
+  }
+
+  // --- Decision Hierarchy ---
+
+  // Priority 1: ALERT (Quantized clock OR mechanical loop)
+  if (isQuantizedAlert) {
     return {
       id: 'time_regularity',
       name: 'Mechanical Clock & Timing Regularity',
-      status: 'INFO',
-      scorePenalty: 0,
-      summary: 'Commits are dispersed across separate calendar days',
+      status: 'ALERT',
+      scorePenalty: 30,
+      summary: `Synthetic AI clock rhythm detected: ${zeroSecondsPercent}% of commits quantized to exact :00s (${roundMinutesPercent}% on 5-min intervals)`,
       details: {
+        zeroSecondsCount,
+        zeroSecondsPercent,
+        roundMinutesPercent,
+        quantizedClockDetected: true,
+        consecutiveGapStdDevSeconds: gapsInSeconds.length >= 8 ? Number(stdDev.toFixed(1)) : undefined,
         sameDayGapsCount: gapsInSeconds.length,
-        insufficientSameDayData: true,
       },
       explanation:
-        'Commits generally occurred on distinct days. No rapid same-day burst was available for mechanical clock analysis.',
+        'Human commits exhibit random seconds uniformly distributed from 0 to 59. When over 40% of commits land on exact :00 seconds and round 5-minute intervals, it is conclusive evidence of an AI script generating fabricated timestamps.',
     };
   }
 
-  // Calculate mean and standard deviation
-  const sum = gapsInSeconds.reduce((acc, val) => acc + val, 0);
-  const mean = sum / gapsInSeconds.length;
-
-  const variance =
-    gapsInSeconds.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) /
-    gapsInSeconds.length;
-  const stdDev = Math.sqrt(variance);
-
-  // Red Flag: Standard deviation < 5s across 8+ pairs (e.g. exactly 60s or 1s intervals)
-  if (gapsInSeconds.length >= 8 && stdDev < 5) {
+  if (isIntervalAlert) {
     return {
       id: 'time_regularity',
       name: 'Mechanical Clock & Timing Regularity',
@@ -82,6 +120,7 @@ export function analyzeTimeRegularity(commits: RawCommit[]): SignalResult {
         consecutiveGapStdDevSeconds: Number(stdDev.toFixed(1)),
         averageGapSeconds: Math.round(mean),
         sameDayGapsCount: gapsInSeconds.length,
+        zeroSecondsPercent,
         scriptedIntervalDetected: true,
       },
       explanation:
@@ -89,8 +128,26 @@ export function analyzeTimeRegularity(commits: RawCommit[]): SignalResult {
     };
   }
 
-  // Warning: StdDev < 15s
-  if (gapsInSeconds.length >= 8 && stdDev < 15) {
+  // Priority 2: WARNING
+  if (isQuantizedWarning) {
+    return {
+      id: 'time_regularity',
+      name: 'Mechanical Clock & Timing Regularity',
+      status: 'WARNING',
+      scorePenalty: 15,
+      summary: `Unnatural timestamp rounding: ${zeroSecondsPercent}% of commits on exact :00s`,
+      details: {
+        zeroSecondsCount,
+        zeroSecondsPercent,
+        roundMinutesPercent,
+        quantizedClockDetected: true,
+      },
+      explanation:
+        'A significant proportion of commits land on exact minute and round-second boundaries, which is statistically improbable for natural human activity.',
+    };
+  }
+
+  if (isIntervalWarning) {
     return {
       id: 'time_regularity',
       name: 'Mechanical Clock & Timing Regularity',
@@ -108,20 +165,39 @@ export function analyzeTimeRegularity(commits: RawCommit[]): SignalResult {
     };
   }
 
-  // Pass: Natural human variance
+  // Priority 3: Dispersed days notice (if no same-day data and not quantized)
+  if (gapsInSeconds.length < 5) {
+    return {
+      id: 'time_regularity',
+      name: 'Mechanical Clock & Timing Regularity',
+      status: 'INFO',
+      scorePenalty: 0,
+      summary: 'Commits are dispersed across separate calendar days with natural seconds',
+      details: {
+        sameDayGapsCount: gapsInSeconds.length,
+        zeroSecondsPercent,
+        insufficientSameDayData: true,
+      },
+      explanation:
+        'Commits generally occurred on distinct days. Timestamp seconds show natural organic variation.',
+    };
+  }
+
+  // Priority 4: PASS
   return {
     id: 'time_regularity',
     name: 'Mechanical Clock & Timing Regularity',
     status: 'PASS',
     scorePenalty: 0,
-    summary: `Natural time variation (StdDev: ${Math.round(stdDev).toLocaleString()}s between consecutive commits)`,
+    summary: `Natural time variation (StdDev: ${Math.round(stdDev).toLocaleString()}s, ${zeroSecondsPercent}% :00s)`,
     details: {
       consecutiveGapStdDevSeconds: Math.round(stdDev),
       averageGapSeconds: Math.round(mean),
       sameDayGapsCount: gapsInSeconds.length,
+      zeroSecondsPercent,
       scriptedIntervalDetected: false,
     },
     explanation:
-      'Gaps between commits vary naturally according to cognitive thinking, coding, testing, and normal breaks.',
+      'Gaps between commits and second distributions vary naturally according to cognitive thinking, coding, testing, and normal breaks.',
   };
 }
