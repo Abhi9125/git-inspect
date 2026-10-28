@@ -783,9 +783,11 @@ Instead of sharing a single server IP quota (which is capped at 60 unauthenticat
 
 ### Technical Flow:
 1. **Frontend Authentication (`apps/web`):** Built-in Next.js 15 OAuth handlers (`/api/auth/github`, `/api/auth/callback/github`, `/api/auth/me`, `/api/auth/logout`) with encrypted HTTP-only session cookies.
-2. **Auth Context & Navbar Pill (`apps/web`):** `AuthContext` provides user state. Navbar renders a sleek `"Sign in with GitHub"` button when logged out, and user avatar + `"5,000 Quota Active"` pill when logged in.
-3. **Token Forwarding (`apps/web/lib/api.ts`):** Client passes user's GitHub token in `Authorization: Bearer <token>` on `POST /api/scan`.
-4. **Backend Prioritization (`apps/api`):** NestJS backend extracts `userToken` and uses it for all GitHub API requests during that scan.
+2. **Auth Context & Navbar Pill (`apps/web`):** `AuthContext` provides user state. Navbar renders a sleek `"Sign in with GitHub"` button with a `"🔒 Public Profile Only (read:user) • Zero access to private repos"` trust badge when logged out, and user avatar + `"5,000 Quota Active"` pill when logged in.
+3. **Auto-Resume Scan on Login (`apps/web`):** If an unauthenticated visitor hits the rate limit, clicking `"Sign in with GitHub & Resume Scan"` authorizes via OAuth and automatically redirects back to finish the scan with their fresh 5,000 personal quota without retyping the URL.
+4. **Token Forwarding (`apps/web/lib/api.ts`):** Client passes user's GitHub token in `Authorization: Bearer <token>` on `POST /api/scan`.
+5. **Backend Prioritization (`apps/api`):** NestJS backend extracts `userToken` and uses it for all GitHub API requests during that scan.
+6. **Strict Personal Audit Isolation:** Prisma schema adds an indexed `scannedBy String?` column in Neon PostgreSQL. Logged-in users see only their own scan history on the homepage ("My Audit History"), preserving complete privacy.
 
 ### Implementation Roadmap (Steps 31–35):
 
