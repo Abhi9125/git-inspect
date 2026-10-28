@@ -704,6 +704,47 @@ export class ScanController { ... }
 
 ---
 
+## 🤖 Phase 6: Advanced AI Synthetic Commit Detection (Steps 23–26)
+
+### The Problem: Sophisticated AI-Generated Backdated Repositories
+Traditional streak detectors assume scripts are simplistic (committing to `streak.txt` with duplicate messages and 2-second intervals). However, modern LLM-assisted backdating scripts can generate:
+- 60+ modular source code files (bypassing File Diversity)
+- 80+ unique Conventional Commits (bypassing Message Entropy)
+- Timestamps spaced across 118 calendar days (bypassing naive same-day time regularity)
+- Matched `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` down to the millisecond (bypassing basic author-committer drift)
+
+### The Solution: Two Mathematical Smoking Guns
+1. **Signal 3 Upgrade — Quantized Clock Detection (Zero-Second & Round-Minute Heuristic):**
+   - Natural human commits have randomly distributed seconds ($P(\text{second} = 0) \approx 1.67\%$).
+   - AI scripts generate formatted strings with round seconds (`:00`) and round 5-minute boundaries (`:00, :05, :10, :15, ...`).
+   - If total commits $\ge 15$ and $>40\%$ commits have `:00` seconds (or $>70\%$ on 5-min multiples):
+     - **ALERT (-30 pts)**: `Synthetic AI clock rhythm detected: XX% of commits quantized to exact :00s`
+   - If $>20\%$ commits have `:00` seconds:
+     - **WARNING (-15 pts)**: `Unnatural timestamp rounding: XX% of commits on exact :00s`
+
+2. **Signal 4 Upgrade — Repository Creation Drift (Time-Travel Paradox):**
+   - Compares the earliest commit timestamp against GitHub's `created_at` timestamp.
+   - **Compound Detection:** If $>50\%$ of commits predate the GitHub repository's creation by $>30$ days **AND** exhibit synthetic clock quantization (or were uploaded in a single rapid batch-push):
+     - **ALERT (-20 pts)**: `Batch-backdated history: Commits predate GitHub repo creation by XX days with synthetic clock simulation`
+   - If commits predate GitHub creation but have normal random human seconds:
+     - **INFO (0 pts)**: `Historical import: Repository contains commits predating GitHub creation, consistent with local or external git migration.`
+
+3. **Orchestrator & Invalidation Updates:**
+   - Add `{ force: true }` parameter to `POST /api/scan` to bypass the 24-hour cache when users click "Re-analyze".
+   - Pass GitHub repository `created_at` and `pushed_at` metadata into `analyzeDateMismatch`.
+   - Invalidate cached 100/100 score for `developertdsl-prog/finvault-treasury` to verify that its score drops to SUSPICIOUS (<60/100).
+
+### Implementation Roadmap (Steps 23–26):
+
+| Step | Task | Target Files |
+|------|------|--------------|
+| 23 | Implement Quantized Zero-Second Clock Heuristic in Signal 3 | `apps/api/src/forensics/signals/timeRegularity.ts` |
+| 24 | Implement Compound Repo Creation Drift in Signal 4 & pass repo metadata | `apps/api/src/forensics/signals/dateMismatch.ts`, `forensics.service.ts` |
+| 25 | Add force cache-bypass to API and wire frontend Re-analyze button | `apps/api/src/scan/scan.service.ts`, `apps/web/app/report/[slug]/page.tsx` |
+| 26 | Invalidate old Neon DB record, re-scan `finvault-treasury`, and verify drop to SUSPICIOUS | Neon PostgreSQL, Live Verification |
+
+---
+
 ## ✅ V1 Feature Checklist
 
 | Feature | Included |
