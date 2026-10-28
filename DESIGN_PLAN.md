@@ -787,14 +787,15 @@ Instead of sharing a single server IP quota (which is capped at 60 unauthenticat
 3. **Token Forwarding (`apps/web/lib/api.ts`):** Client passes user's GitHub token in `Authorization: Bearer <token>` on `POST /api/scan`.
 4. **Backend Prioritization (`apps/api`):** NestJS backend extracts `userToken` and uses it for all GitHub API requests during that scan.
 
-### Implementation Roadmap (Steps 31–34):
+### Implementation Roadmap (Steps 31–35):
 
 | Step | Task | Target Files |
 |------|------|--------------|
 | 31 | Implement Next.js 15 GitHub OAuth route handlers (`github`, `callback`, `me`, `logout`) | `apps/web/app/api/auth/` |
 | 32 | Build AuthContext, Session Provider, and Navbar Sign-In UI | `apps/web/context/AuthContext.tsx`, `Navbar.tsx` |
 | 33 | Forward user OAuth token from frontend and prioritize in backend GitHubService | `apps/web/lib/api.ts`, `apps/api/src/scan/`, `github.service.ts` |
-| 34 | Verify full multi-tenant flow, test fallback on rate-limit screen, and commit | Full stack verification |
+| 34 | Implement Strict Personal History isolation with Prisma `scannedBy` field and personal dashboard view | `apps/api/prisma/schema.prisma`, `scan.service.ts`, `RecentScans.tsx` |
+| 35 | Verify full multi-tenant flow, test fallback on rate-limit screen, and commit | Full stack verification |
 
 ---
 
