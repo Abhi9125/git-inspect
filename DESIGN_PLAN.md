@@ -745,12 +745,39 @@ Traditional streak detectors assume scripts are simplistic (committing to `strea
 
 ---
 
+## 🛰️ Phase 7: Server-Side Push Event Integrity & Code Churn Realism (Steps 27–30)
+
+### Motivation & Tamper-Proof Architecture
+Git commit timestamps (`GIT_AUTHOR_DATE`, `GIT_COMMITTER_DATE`) are client-side variables that can be modified with environment variables. In contrast, GitHub's server-side event logs (`GET /repos/{owner}/{repo}/events`) record `PushEvent.created_at` generated directly on GitHub's secure datacenter servers.
+
+### The 2 Core Enhancements:
+1. **Signal 8: Server-Side Push Event & Log Integrity (`github_push`):**
+   - Cross-checks whether commits were pushed organically over the claimed development timeline or ingested in a single massive `PushEvent`.
+   - **Single Batch Ingestion (ALERT, -15 pts):** Commits spanning weeks/months uploaded in 1 push event.
+   - **Organic Incremental Delivery (PASS, 0 pts):** Verified multiple distinct `PushEvent` timestamps distributed over days/weeks matching commit timestamps.
+   - **Historical Grace Window (INFO, 0 pts):** For older repos whose events aged past GitHub's 90-day retention window.
+2. **Signal 6 Upgrade: Code Churn & Refactoring Realism (`codeDiff`):**
+   - Natural human engineering features refactoring and dead code removal ($15\% - 40\%$ deletions).
+   - AI bot repos that generate green streaks are purely additive ($>98\%$ additions, $<2\%$ deletions).
+   - If total commits $\ge 25$, additions $>1,500$, and deletions are $< 3\%$, flag as **WARNING (-10 pts)**.
+
+### Implementation Roadmap (Steps 27–30):
+
+| Step | Task | Target Files |
+|------|------|--------------|
+| 27 | Implement GitHub PushEvents fetcher in GitHub service | `apps/api/src/github/github.service.ts` |
+| 28 | Implement Signal 8 (`serverEvents.ts`) & upgrade Signal 6 (`codeDiff.ts`) | `apps/api/src/forensics/signals/serverEvents.ts`, `codeDiff.ts` |
+| 29 | Wire Signal 8 into Forensics orchestrator, Scan service, and Web UI | `apps/api/src/forensics/forensics.service.ts`, `apps/web/` |
+| 30 | Re-scan `finvault-treasury`, test 8-signal UI rendering, and commit | Full stack verification |
+
+---
+
 ## ✅ V1 Feature Checklist
 
 | Feature | Included |
 |---------|----------|
 | Scan any public GitHub repo by URL | ✅ |
-| 7 forensic signal analysis | ✅ |
+| 8 forensic signal analysis (7 Client-Side + 1 GitHub Server Log) | ✅ |
 | Authenticity score (0-100) | ✅ |
 | Bot author auto-exclusion | ✅ |
 | Interactive charts (hours, weekdays) | ✅ |
