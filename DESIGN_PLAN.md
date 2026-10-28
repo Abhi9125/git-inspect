@@ -791,13 +791,13 @@ Instead of sharing a single server IP quota (which is capped at 60 unauthenticat
 
 ### Implementation Roadmap (Steps 31–35):
 
-| Step | Task | Target Files |
-|------|------|--------------|
-| 31 | Implement Next.js 15 GitHub OAuth route handlers (`github`, `callback`, `me`, `logout`) | `apps/web/app/api/auth/` |
-| 32 | Build AuthContext, Session Provider, and Navbar Sign-In UI | `apps/web/context/AuthContext.tsx`, `Navbar.tsx` |
-| 33 | Forward user OAuth token from frontend and prioritize in backend GitHubService | `apps/web/lib/api.ts`, `apps/api/src/scan/`, `github.service.ts` |
-| 34 | Implement Strict Personal History isolation with Prisma `scannedBy` field and personal dashboard view | `apps/api/prisma/schema.prisma`, `scan.service.ts`, `RecentScans.tsx` |
-| 35 | Verify full multi-tenant flow, test fallback on rate-limit screen, and commit | Full stack verification |
+| Step | Task | Target Files | Status |
+|------|------|--------------|--------|
+| 31 | Implement Next.js 15 GitHub OAuth route handlers (`github`, `callback`, `me`, `logout`) | `apps/web/app/api/auth/` | ✅ Done |
+| 32 | Build AuthContext, Session Provider, and Navbar Sign-In UI | `apps/web/context/AuthContext.tsx`, `Navbar.tsx` | ✅ Done |
+| 33 | Forward user OAuth token from frontend and prioritize in backend GitHubService | `apps/web/lib/api.ts`, `apps/api/src/scan/`, `github.service.ts` | ✅ Done |
+| 34 | Implement Strict Personal History isolation with Prisma `scannedBy` field and personal dashboard view | `apps/api/prisma/schema.prisma`, `scan.service.ts`, `RecentScans.tsx` | ✅ Done |
+| 35 | Verify full multi-tenant flow, test fallback on rate-limit screen, auto-resume on login, and commit | Full stack verification | ✅ Done |
 
 ---
 

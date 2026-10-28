@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Search, Sparkles, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { DEMO_PRESETS } from '@git-forensics/shared';
 import { startScan } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function SearchBar() {
   const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
+  const { token, user } = useAuth();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +23,8 @@ export default function SearchBar() {
     setErrorMessage(null);
 
     try {
-      // 1. Call real NestJS backend API
-      const result = await startScan(trimmed);
+      // 1. Call real NestJS backend API with user token & login if available
+      const result = await startScan(trimmed, false, token || undefined, user?.login || undefined);
 
       // 2. Navigate to live scan status page
       router.push(`/scan/${encodeURIComponent(result.scanId)}`);

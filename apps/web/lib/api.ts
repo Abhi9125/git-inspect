@@ -8,10 +8,23 @@ export interface StartScanResponse {
   isCached: boolean;
 }
 
-export async function startScan(repoUrl: string, force: boolean = false): Promise<StartScanResponse> {
+export async function startScan(
+  repoUrl: string,
+  force: boolean = false,
+  userToken?: string,
+  userLogin?: string,
+): Promise<StartScanResponse> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (userToken) {
+    headers['Authorization'] = `Bearer ${userToken}`;
+  }
+  if (userLogin) {
+    headers['X-User-Login'] = userLogin;
+  }
+
   const res = await fetch(`${API_BASE}/scan`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ repoUrl, force }),
   });
 
@@ -52,6 +65,18 @@ export async function getReportByRepo(owner: string, repo: string): Promise<Fore
 export async function getRecentScans(): Promise<any[]> {
   try {
     const res = await fetch(`${API_BASE}/recent`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function getUserScans(username: string): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_BASE}/scans/user/${encodeURIComponent(username)}`, {
+      cache: 'no-store',
+    });
     if (!res.ok) return [];
     return res.json();
   } catch {

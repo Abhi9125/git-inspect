@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Param,
+  Headers,
   HttpCode,
   HttpStatus,
   BadRequestException,
@@ -31,11 +32,17 @@ export class ScanController {
 
   @Post('scan')
   @HttpCode(HttpStatus.OK)
-  async startScan(@Body() body: StartScanDto) {
+  async startScan(
+    @Body() body: StartScanDto,
+    @Headers('authorization') authHeader?: string,
+    @Headers('x-user-login') userLoginHeader?: string,
+  ) {
     if (!body || !body.repoUrl) {
       throw new BadRequestException('repoUrl is required.');
     }
-    return this.scanService.startScan(body.repoUrl, body.force);
+    const userToken = authHeader?.replace(/^Bearer\s+/i, '').trim() || undefined;
+    const scannedBy = userLoginHeader?.trim() || undefined;
+    return this.scanService.startScan(body.repoUrl, body.force, userToken, scannedBy);
   }
 
   @Get('scan/:id')
@@ -51,5 +58,10 @@ export class ScanController {
   @Get('recent')
   getRecentScans() {
     return this.scanService.getRecentScans();
+  }
+
+  @Get('scans/user/:username')
+  getUserScans(@Param('username') username: string) {
+    return this.scanService.getUserScans(username);
   }
 }

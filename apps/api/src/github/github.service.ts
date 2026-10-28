@@ -51,13 +51,14 @@ export class GitHubService {
     this.token = this.configService.get<string>('GITHUB_TOKEN');
   }
 
-  private getHeaders(): Record<string, string> {
+  private getHeaders(overrideToken?: string): Record<string, string> {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
       'User-Agent': 'GitForensics-Engine/1.0',
     };
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    const token = overrideToken || this.token;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
     return headers;
   }
@@ -81,9 +82,13 @@ export class GitHubService {
   /**
    * Fetch repository metadata
    */
-  public async getRepoMetadata(owner: string, repo: string): Promise<GitHubRepoMeta> {
+  public async getRepoMetadata(
+    owner: string,
+    repo: string,
+    userToken?: string,
+  ): Promise<GitHubRepoMeta> {
     const url = `https://api.github.com/repos/${owner}/${repo}`;
-    const res = await fetch(url, { headers: this.getHeaders() });
+    const res = await fetch(url, { headers: this.getHeaders(userToken) });
 
     if (res.status === 404) {
       throw new HttpException(
@@ -127,14 +132,19 @@ export class GitHubService {
   /**
    * Fetch commit history with pagination (up to maxCommits e.g. 500)
    */
-  public async getCommits(owner: string, repo: string, maxCommits = 500): Promise<RawCommit[]> {
+  public async getCommits(
+    owner: string,
+    repo: string,
+    maxCommits = 500,
+    userToken?: string,
+  ): Promise<RawCommit[]> {
     const commits: RawCommit[] = [];
     const perPage = 100;
     let page = 1;
 
     while (commits.length < maxCommits) {
       const url = `https://api.github.com/repos/${owner}/${repo}/commits?per_page=${perPage}&page=${page}`;
-      const res = await fetch(url, { headers: this.getHeaders() });
+      const res = await fetch(url, { headers: this.getHeaders(userToken) });
 
       if (!res.ok) {
         if (res.status === 404 || res.status === 409) break; // Empty repo or no commits
@@ -176,6 +186,7 @@ export class GitHubService {
     owner: string,
     repo: string,
     commits: RawCommit[],
+    userToken?: string,
   ): Promise<RawCommit[]> {
     const total = commits.length;
     if (total === 0) return commits;
@@ -205,7 +216,7 @@ export class GitHubService {
           const target = commits[index];
           try {
             const url = `https://api.github.com/repos/${owner}/${repo}/commits/${target.sha}`;
-            const res = await fetch(url, { headers: this.getHeaders() });
+            const res = await fetch(url, { headers: this.getHeaders(userToken) });
             if (res.ok) {
               const detail = await res.json();
               target.stats = detail.stats || { additions: 0, deletions: 0, total: 0 };
@@ -226,10 +237,14 @@ export class GitHubService {
   /**
    * Fetch public repository events (up to 100 events, 90-day window)
    */
-  public async getRepoEvents(owner: string, repo: string): Promise<GitHubPushEvent[]> {
+  public async getRepoEvents(
+    owner: string,
+    repo: string,
+    userToken?: string,
+  ): Promise<GitHubPushEvent[]> {
     const url = `https://api.github.com/repos/${owner}/${repo}/events?per_page=100`;
     try {
-      const res = await fetch(url, { headers: this.getHeaders() });
+      const res = await fetch(url, { headers: this.getHeaders(userToken) });
       if (!res.ok) {
         return [];
       }

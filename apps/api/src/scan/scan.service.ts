@@ -21,6 +21,7 @@ interface ScanRecord {
   completedSteps: string[];
   report?: ForensicReport;
   error?: string;
+  scannedBy?: string;
   createdAt: Date;
   completedAt?: Date;
 }
@@ -46,6 +47,8 @@ export class ScanService {
   public async startScan(
     repoUrl: string,
     force: boolean = false,
+    userToken?: string,
+    scannedBy?: string,
   ): Promise<{ scanId: string; status: ScanStatus; isCached: boolean }> {
     const { owner, repo } = this.githubService.parseRepoUrl(repoUrl);
     const repoKey = `${owner.toLowerCase()}/${repo.toLowerCase()}`;
@@ -100,6 +103,7 @@ export class ScanService {
       progressPercent: 5,
       currentStepMessage: 'Scan queued...',
       completedSteps: [],
+      scannedBy: scannedBy || 'guest',
       createdAt: new Date(),
     };
 
@@ -114,6 +118,7 @@ export class ScanService {
           update: {
             id: scanId,
             status: 'PENDING',
+            scannedBy: scannedBy || 'guest',
             updatedAt: new Date(),
           },
           create: {
@@ -122,6 +127,7 @@ export class ScanService {
             repoName: repo,
             repoUrl: fullUrl,
             status: 'PENDING',
+            scannedBy: scannedBy || 'guest',
           },
         });
       } catch (err: any) {
@@ -130,7 +136,7 @@ export class ScanService {
     }
 
     // 4. Trigger asynchronous background pipeline
-    this.runScanPipeline(scanId, owner, repo).catch((err) => {
+    this.runScanPipeline(scanId, owner, repo, userToken).catch((err) => {
       this.logger.error(`Unhandled error in scan pipeline for ${repoKey}:`, err);
     });
 
@@ -140,7 +146,12 @@ export class ScanService {
   /**
    * Background scan pipeline execution
    */
-  private async runScanPipeline(scanId: string, owner: string, repo: string): Promise<void> {
+  private async runScanPipeline(
+    scanId: string,
+    owner: string,
+    repo: string,
+    userToken?: string,
+  ): Promise<void> {
     const record = this.memoryStore.get(scanId);
     if (!record) return;
 
@@ -149,14 +160,14 @@ export class ScanService {
       record.status = 'VALIDATING';
       record.progressPercent = 15;
       record.currentStepMessage = 'Validating repository on GitHub...';
-      const meta = await this.githubService.getRepoMetadata(owner, repo);
+      const meta = await this.githubService.getRepoMetadata(owner, repo, userToken);
       record.completedSteps.push('validate');
 
       // Step 2: Fetching commit history
       record.status = 'FETCHING_COMMITS';
       record.progressPercent = 35;
       record.currentStepMessage = 'Extracting commit trees and timeline...';
-      const rawCommits = await this.githubService.getCommits(owner, repo, 500);
+      const rawCommits = await this.githubService.getCommits(owner, repo, 500, userToken);
       record.completedSteps.push('fetch_commits');
 
       // Step 3: Bot Author Filtering
@@ -171,6 +182,7 @@ export class ScanService {
         owner,
         repo,
         humanCommits.length > 0 ? humanCommits : rawCommits,
+        userToken,
       );
       record.completedSteps.push('sample_files');
 
@@ -178,7 +190,7 @@ export class ScanService {
       record.status = 'ANALYZING';
       record.progressPercent = 85;
       record.currentStepMessage = 'Running 8-signal forensic algorithms & server log audit...';
-      const repoEvents = await this.githubService.getRepoEvents(owner, repo);
+      const repoEvents = await this.githubService.getRepoEvents(owner, repo, userToken);
       const analysis = this.forensicsService.analyze(
         enrichedCommits,
         meta.createdAt,
@@ -406,6 +418,71 @@ export class ScanService {
     // 2. Combine with in-memory store
     for (const record of this.memoryStore.values()) {
       if (record.status === 'COMPLETED' && record.report) {
+        const key = `${record.repoOwner.toLowerCase()}/${record.repoName.toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({
+            owner: record.repoOwner,
+            repo: record.repoName,
+            score: record.report.score,
+            verdict: record.report.verdict,
+            stars: record.report.repo.stars,
+            language: record.report.repo.language || 'Unknown',
+            timeAgo: 'Just now',
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Get audit history for a specific user (Personal Isolation)
+   */
+  public async getUserScans(username: string): Promise<any[]> {
+    const results: any[] = [];
+    const seen = new Set<string>();
+
+    if (this.prisma.isConnected) {
+      try {
+        const dbScans = await this.prisma.scan.findMany({
+          where: {
+            scannedBy: { equals: username, mode: 'insensitive' },
+            status: 'COMPLETED',
+            score: { not: null },
+          },
+          orderBy: { completedAt: 'desc' },
+          take: 10,
+        });
+
+        for (const s of dbScans) {
+          const key = `${s.repoOwner.toLowerCase()}/${s.repoName.toLowerCase()}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            results.push({
+              owner: s.repoOwner,
+              repo: s.repoName,
+              score: s.score,
+              verdict: s.verdict,
+              stars: s.stars || 0,
+              language: s.language || 'TypeScript',
+              timeAgo: s.completedAt ? this.formatTimeAgo(s.completedAt) : 'Recently',
+            });
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`Could not fetch user scans from DB: ${err.message}`);
+      }
+    }
+
+    // Combine with in-memory store matching scannedBy
+    for (const record of this.memoryStore.values()) {
+      if (
+        record.status === 'COMPLETED' &&
+        record.report &&
+        record.scannedBy?.toLowerCase() === username.toLowerCase()
+      ) {
         const key = `${record.repoOwner.toLowerCase()}/${record.repoName.toLowerCase()}`;
         if (!seen.has(key)) {
           seen.add(key);

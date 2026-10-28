@@ -39,6 +39,9 @@ model Scan {
   hourDistribution  Json?
   weekdayDistribution Json?
   
+  // User ownership & personal isolation
+  scannedBy   String?
+
   // Timestamps
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -46,6 +49,7 @@ model Scan {
   
   @@unique([repoOwner, repoName])
   @@index([repoOwner, repoName])
+  @@index([scannedBy])
 }
 
 enum ScanStatus {

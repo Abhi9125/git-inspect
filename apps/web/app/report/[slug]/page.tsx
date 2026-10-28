@@ -20,6 +20,7 @@ import WeekdayChart from '../../../components/WeekdayChart';
 import { MOCK_AUTHENTIC_REPORT, MOCK_BOT_REPORT } from '../../../lib/mockData';
 import { getReportByRepo, startScan } from '../../../lib/api';
 import { ForensicReport } from '@git-forensics/shared';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function ReportPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
@@ -86,11 +87,18 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
     };
   }, [isDemo, owner, repo, slug]);
 
+  const { token, user } = useAuth();
+
   const handleStartScanNow = async () => {
     if (!owner || !repo) return;
     try {
       setIsScanning(true);
-      const res = await startScan(`https://github.com/${owner}/${repo}`, true);
+      const res = await startScan(
+        `https://github.com/${owner}/${repo}`,
+        true,
+        token || undefined,
+        user?.login || undefined,
+      );
       router.push(`/scan/${res.scanId}`);
     } catch (err: any) {
       setIsScanning(false);
