@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ShieldCheck, GitFork, Star, ArrowUpRight, Cpu, FileCode2, Clock, CalendarDays, Terminal } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
-import { RECENT_SCANS } from '../lib/mockData';
+import RecentScans from '../components/RecentScans';
 
 export default function HomePage() {
   return (
@@ -31,73 +31,7 @@ export default function HomePage() {
       </div>
 
       {/* Recent Scans Bento Grid (Vibrant Style) */}
-      <div className="mt-16 sm:mt-24">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-bold tracking-tight text-white">
-              Recent Forensic Scans
-            </h2>
-            <p className="text-[12px] text-dark-muted">
-              Live sample repositories analyzed by our detection engine
-            </p>
-          </div>
-          <Link
-            href="/report/demo"
-            className="text-[12px] font-medium text-vibrant hover:text-vibrant-hover flex items-center gap-1"
-          >
-            Open Interactive Demo <ArrowUpRight className="size-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {RECENT_SCANS.map((scan) => {
-            const isAuthentic = scan.verdict === 'AUTHENTIC';
-            return (
-              <Link
-                key={`${scan.owner}/${scan.repo}`}
-                href="/report/demo"
-                className="vibrant-card group relative overflow-hidden rounded-xl bg-dark-card ring-1 ring-dark-border hover:ring-vibrant/40 p-4 shadow-sm"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[11px] font-mono text-dark-muted block truncate">
-                      {scan.owner}
-                    </span>
-                    <h3 className="text-[15px] font-semibold text-white tracking-tight group-hover:text-vibrant transition-colors truncate">
-                      {scan.repo}
-                    </h3>
-                  </div>
-
-                  {/* Score Pill */}
-                  <div
-                    className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold ring-1 flex items-center gap-1.5 ${
-                      isAuthentic
-                        ? 'bg-authentic/10 text-authentic ring-authentic/30'
-                        : 'bg-danger/10 text-danger ring-danger/30'
-                    }`}
-                  >
-                    <span>{scan.score}/100</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between border-t border-dark-border/50 pt-3 text-[11px] text-dark-muted font-mono">
-                  <span className="flex items-center gap-1">
-                    <span className="size-2 rounded-full bg-vibrant" />
-                    {scan.language}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <Star className="size-3 text-amber-400" />
-                      {scan.stars}
-                    </span>
-                    <span>{scan.timeAgo}</span>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+      <RecentScans />
 
       {/* 7 Signals Preview Grid */}
       <div className="mt-20 border-t border-dark-border/60 pt-12">

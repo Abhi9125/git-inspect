@@ -300,9 +300,18 @@ export class ScanService {
 
     // Try PostgreSQL
     if (this.prisma.isConnected) {
-      const dbScan = await this.prisma.scan.findUnique({
+      let dbScan = await this.prisma.scan.findUnique({
         where: { repoOwner_repoName: { repoOwner: owner, repoName: repo } },
       });
+
+      if (!dbScan) {
+        dbScan = await this.prisma.scan.findFirst({
+          where: {
+            repoOwner: { equals: owner, mode: 'insensitive' },
+            repoName: { equals: repo, mode: 'insensitive' },
+          },
+        });
+      }
 
       if (dbScan && dbScan.status === 'COMPLETED' && dbScan.score !== null) {
         return {
@@ -345,23 +354,71 @@ export class ScanService {
   }
 
   /**
-   * Return recent completed scans
+   * Return recent completed scans (merges Neon DB + memory)
    */
-  public getRecentScans() {
-    const completed: any[] = [];
-    for (const record of this.memoryStore.values()) {
-      if (record.status === 'COMPLETED' && record.report) {
-        completed.push({
-          owner: record.repoOwner,
-          repo: record.repoName,
-          score: record.report.score,
-          verdict: record.report.verdict,
-          stars: record.report.repo.stars,
-          language: record.report.repo.language || 'Unknown',
-          timeAgo: 'Just now',
+  public async getRecentScans() {
+    const results: any[] = [];
+    const seen = new Set<string>();
+
+    // 1. From PostgreSQL if available
+    if (this.prisma.isConnected) {
+      try {
+        const dbScans = await this.prisma.scan.findMany({
+          where: { status: 'COMPLETED', score: { not: null } },
+          orderBy: { completedAt: 'desc' },
+          take: 6,
         });
+
+        for (const s of dbScans) {
+          const key = `${s.repoOwner.toLowerCase()}/${s.repoName.toLowerCase()}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            results.push({
+              owner: s.repoOwner,
+              repo: s.repoName,
+              score: s.score,
+              verdict: s.verdict,
+              stars: s.stars || 0,
+              language: s.language || 'TypeScript',
+              timeAgo: s.completedAt ? this.formatTimeAgo(s.completedAt) : 'Recently',
+            });
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`Could not fetch recent scans from DB: ${err.message}`);
       }
     }
-    return completed;
+
+    // 2. Combine with in-memory store
+    for (const record of this.memoryStore.values()) {
+      if (record.status === 'COMPLETED' && record.report) {
+        const key = `${record.repoOwner.toLowerCase()}/${record.repoName.toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({
+            owner: record.repoOwner,
+            repo: record.repoName,
+            score: record.report.score,
+            verdict: record.report.verdict,
+            stars: record.report.repo.stars,
+            language: record.report.repo.language || 'Unknown',
+            timeAgo: 'Just now',
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  private formatTimeAgo(date: Date): string {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   }
 }
